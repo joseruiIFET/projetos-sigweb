@@ -1,0 +1,17 @@
+{
+  "name": "SIG-Web - Coletor Geodésico GPS",
+  "short_name": "GPS SIG",
+  "description": "Aplicativo PWA para captura e inspeção de coordenadas GPS em campo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
