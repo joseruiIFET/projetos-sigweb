@@ -15,6 +15,9 @@ const MapaInterativo = dynamic(() => import("../components/MapaNavegacao"), {
   ),
 });
 
+const PRECISAO_MAXIMA_METROS = 30; // Leituras piores que isso não entram no odômetro
+const DESLOCAMENTO_MINIMO_METROS = 10; // Menos que isso é tratado como ruído do GPS
+
 export default function Home() {
   const [posicao, setPosicao] = useState(null);
   const [modoNavegacao, setModoNavegacao] = useState(false);
@@ -35,6 +38,12 @@ export default function Home() {
     };
   }, []);
 
+  function zerarOdometro() {
+    setDistanciaTotal(0);
+    setLeiturasCount(0);
+    ultimaPosicaoRef.current = null; // Sem isso, a próxima leitura somaria o trecho anterior
+  }
+
   function alternarNavegacao() {
     if (modoNavegacao) {
       // 🛑 Parar streaming e desligar o rádio de satélites
@@ -52,6 +61,7 @@ export default function Home() {
     }
 
     setErro(null);
+    zerarOdometro(); // Cada navegação começa um novo percurso
 
     // 🚀 Iniciar streaming contínuo
     const id = navigator.geolocation.watchPosition(
@@ -68,20 +78,26 @@ export default function Home() {
           horario: new Date(pos.timestamp).toLocaleTimeString("pt-BR"),
         };
 
-        // Acumula distância percorrida se moveu mais de 2 metros (filtra ruído)
-        if (ultimaPosicaoRef.current) {
-          const d = haversine(
-            ultimaPosicaoRef.current.latitude,
-            ultimaPosicaoRef.current.longitude,
-            nova.latitude,
-            nova.longitude
-          );
-          if (d > 2) {
-            setDistanciaTotal((prev) => prev + d);
+        // Odômetro: só soma quando o deslocamento supera o erro do GPS.
+        // A referência só avança quando a distância é somada; assim, a oscilação
+        // parado não acumula e os passos pequenos de uma caminhada não se perdem.
+        if (nova.precisao <= PRECISAO_MAXIMA_METROS) {
+          if (!ultimaPosicaoRef.current) {
+            ultimaPosicaoRef.current = nova;
+          } else {
+            const d = haversine(
+              ultimaPosicaoRef.current.latitude,
+              ultimaPosicaoRef.current.longitude,
+              nova.latitude,
+              nova.longitude
+            );
+            if (d > Math.max(DESLOCAMENTO_MINIMO_METROS, 2 * nova.precisao)) {
+              setDistanciaTotal((prev) => prev + d);
+              ultimaPosicaoRef.current = nova;
+            }
           }
         }
 
-        ultimaPosicaoRef.current = nova;
         setErro(null);
         setPosicao(nova);
         setLeiturasCount((prev) => prev + 1);
@@ -180,7 +196,7 @@ export default function Home() {
         </span>
         <button
           type="button"
-          onClick={() => { setDistanciaTotal(0); setLeiturasCount(0); }}
+          onClick={zerarOdometro}
           style={{ background: "none", border: "none", color: "#64748b", textDecoration: "underline", cursor: "pointer", fontSize: 11 }}
         >
           Zerar odômetro

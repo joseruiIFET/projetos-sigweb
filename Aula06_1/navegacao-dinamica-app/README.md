@@ -10,12 +10,12 @@ Este aplicativo substitui a integração nativa com o ArcGIS Runtime (`LocationD
 
 - **Streaming Contínuo com `watchPosition`**: Abre um canal contínuo com os satélites de GPS, atualizando a posição em tempo real conforme o usuário se move, sem a destruição de bateria provocada por `setInterval`.
 - **Gerenciamento de Bateria com `clearWatch`**: Libera a antena do rádio de satélites imediatamente ao pausar a navegação ou desmontar a página.
-- **Componente Fantasma `RastreadorCamera`**: Implementa o efeito *AutoPanMode* suave via `map.flyTo()`, integrando o fluxo declarativo do React com o motor imperativo do Leaflet.
+- **Componente Fantasma `RastreadorCamera`**: Implementa o efeito *AutoPanMode* suave via `map.panTo()`, integrando o fluxo declarativo do React com o motor imperativo do Leaflet.
 - **Prevenção de Erros de SSR (`next/dynamic`)**: Carrega os componentes do Leaflet exclusivamente no lado do cliente (`ssr: false`), evitando o erro de `window is not defined`.
 - **HUD de Telemetria ao Vivo**:
   - Velocidade instantânea calculada em km/h
   - Rumo de deslocamento / Azimute em graus com indicação do ponto cardeal (N, NE, L, etc.)
-  - Odômetro de distância total percorrida (acumulada via fórmula de Haversine)
+  - Odômetro de distância total percorrida (acumulada via fórmula de Haversine, somando só deslocamentos maiores que `Math.max(10, 2 * precisão)` metros para filtrar o ruído do GPS)
   - Círculo dinâmico de raio de incerteza da precisão horizontal (±X metros)
 - **Alternador de Camadas Cartográficas**: Permite alternar com 1 clique entre imagens de satélite/ortofotos (ESRI World Imagery) e malha viária urbana (OpenStreetMap).
 - **PWA com Suporte Offline**: Configurável para instalação direta na gaveta de aplicativos do smartphone.
