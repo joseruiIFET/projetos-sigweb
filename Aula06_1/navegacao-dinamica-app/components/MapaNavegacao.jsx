@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -15,17 +15,23 @@ L.Icon.Default.mergeOptions({
 
 /**
  * COMPONENTE FANTASMA: RastreadorCamera
- * Executa o AutoPanMode suave com map.flyTo()
+ * Executa o AutoPanMode: posiciona na primeira leitura e depois usa map.panTo().
+ * Não use map.flyTo() aqui: o GPS do celular atualiza a cada segundo e cada
+ * chamada reiniciaria a animação de 1,2 s, sem nunca concluir o movimento.
  */
 function RastreadorCamera({ posicao, seguindo }) {
   const map = useMap();
+  const jaPosicionouRef = useRef(false);
 
   useEffect(() => {
-    if (posicao && seguindo) {
-      map.flyTo([posicao.latitude, posicao.longitude], 17, {
-        animate: true,
-        duration: 1.2,
-      });
+    if (!posicao || !seguindo) return;
+
+    const destino = [posicao.latitude, posicao.longitude];
+    if (!jaPosicionouRef.current) {
+      map.setView(destino, 17, { animate: false });
+      jaPosicionouRef.current = true;
+    } else {
+      map.panTo(destino, { animate: true, duration: 0.5 });
     }
   }, [posicao, seguindo, map]);
 
@@ -117,12 +123,14 @@ export default function MapaNavegacao({
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="&copy; ESRI World Imagery"
             maxZoom={19}
+            updateWhenIdle={false}
           />
         ) : (
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
             maxZoom={19}
+            updateWhenIdle={false}
           />
         )}
 

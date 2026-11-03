@@ -1,5 +1,5 @@
 // Service Worker para o Sistema de Navegação PWA (SIG-Web)
-const CACHE_NAME = 'sigweb-navegacao-v1';
+const CACHE_NAME = 'sigweb-navegacao-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -34,14 +34,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Páginas: rede primeiro. Se viessem do cache, um HTML antigo apontaria para
+  // arquivos de um deploy anterior, que não existem mais, e a página quebraria.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('/offline.html'))
+      )
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-      });
-    })
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });

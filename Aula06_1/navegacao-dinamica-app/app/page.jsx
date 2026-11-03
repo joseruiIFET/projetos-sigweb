@@ -62,8 +62,9 @@ export default function Home() {
           longitude: coords.longitude,
           precisao: Math.round(coords.accuracy * 10) / 10,
           altitude: coords.altitude ? Math.round(coords.altitude * 10) / 10 : null,
-          velocidade: coords.speed !== null ? Math.round(coords.speed * 3.6 * 10) / 10 : 0,
-          rumo: coords.heading !== null ? Math.round(coords.heading) : null,
+          // O iOS pode informar valores negativos quando velocidade/rumo são inválidos
+          velocidade: coords.speed !== null && coords.speed >= 0 ? Math.round(coords.speed * 3.6 * 10) / 10 : 0,
+          rumo: coords.heading !== null && coords.heading >= 0 && !Number.isNaN(coords.heading) ? Math.round(coords.heading) : null,
           horario: new Date(pos.timestamp).toLocaleTimeString("pt-BR"),
         };
 
@@ -81,13 +82,26 @@ export default function Home() {
         }
 
         ultimaPosicaoRef.current = nova;
+        setErro(null);
         setPosicao(nova);
         setLeiturasCount((prev) => prev + 1);
       },
       (err) => {
-        setErro(`Erro do GPS: ${err.message}. Em desktop, use o botão de simulação.`);
+        if (err.code === err.PERMISSION_DENIED) {
+          // Sem permissão não há o que acompanhar: encerra e volta o botão ao estado inicial
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+          setModoNavegacao(false);
+          setErro(
+            "Localização bloqueada. No iPhone: Ajustes > Privacidade e Segurança > Serviços de Localização > Sites do Safari > Perguntar na Próxima Vez. Depois recarregue a página e permita o acesso."
+          );
+        } else if (err.code === err.TIMEOUT) {
+          setErro("O GPS ainda não respondeu. Continuando a tentar; vá para um local mais aberto.");
+        } else {
+          setErro(`Erro do GPS: ${err.message}`);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
 
     watchIdRef.current = id;
